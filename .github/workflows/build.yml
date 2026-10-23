@@ -1,0 +1,53 @@
+name: build
+
+# Builds Foresite Mind on a Mac runner. Every push to main publishes a release that the app installs from itself
+# (its updater reads this repo's latest release). The tag is v<version>.<build> from Info.plist.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        os: [macos-15, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the app
+        run: bash build.sh
+      - name: Keep the build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Foresite-Mind-${{ matrix.os }}
+          path: dist/Foresite-Mind.zip
+
+  release:
+    needs: build
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Foresite-Mind-*
+          path: builds
+      - name: Publish a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          zip=$(find builds -name Foresite-Mind.zip | head -1)
+          test -n "$zip" || { echo "No Mac build finished"; exit 1; }
+          version=$(grep -A1 CFBundleShortVersionString Info.plist | grep -o '[0-9][0-9.]*' | head -1)
+          build=$(grep -A1 '<key>CFBundleVersion</key>' Info.plist | grep -o '[0-9]\+' | head -1)
+          tag="v$version.$build"
+          if gh release view "$tag" >/dev/null 2>&1; then echo "$tag already exists: bump CFBundleVersion in Info.plist for a new release"; exit 0; fi
+          gh release create "$tag" "$zip" --title "Foresite Mind $version" \
+            --notes "Foresite Mind $version (build $build). The app installs this itself from its menu (Update to $version…). To install by hand: download Foresite-Mind.zip, unzip, drag into Applications, then choose Open Anyway in System Settings › Privacy & Security the first time."
