@@ -84,6 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var sessions: [Session] = []
     var agents: [(id: String, role: String, company: String)] = []
     var actionsOpen: Int?
+    var fleetOn = false
     var heard = false
     var latestVersion: String?
     var latestRelease: Updater.Release?
@@ -125,6 +126,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let hide = wallpaper || ambientOn || hideBarInWindow
         web?.evaluateJavaScript("window.__mindSetBar && window.__mindSetBar(\(hide))")
         extraWallpapers.values.forEach { ($0.contentView as? WKWebView)?.evaluateJavaScript("window.__mindSetBar && window.__mindSetBar(true)") }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self = self else { return }
+            self.clipBar(self.web, hide: hide, in: self.window)
+            for w in self.extraWallpapers.values { if let v = w.contentView as? WKWebView { self.clipBar(v, hide: true, in: w) } }
+        }
+    }
+
+    /// If claude.ai's bar is still above the Mind (its layout changed, say), push the web view up so the bar sits above the
+    /// window's top edge and is simply not shown. Nothing in the page is touched.
+    func clipBar(_ view: WKWebView?, hide: Bool, in win: NSWindow?) {
+        guard let view = view, let content = win?.contentView else { return }
+        let apply: (CGFloat) -> Void = { top in
+            var f = content.bounds
+            f.size.height += top
+            view.autoresizingMask = [.width, .height]
+            view.frame = f
+        }
+        guard hide else { apply(0); return }
+        view.evaluateJavaScript("(function(){var f=document.querySelector('iframe');if(!f)return 0;var t=f.getBoundingClientRect().top;return t>0&&t<160?t:0})()") { v, _ in
+            apply(CGFloat((v as? NSNumber)?.doubleValue ?? 0))
+        }
     }
     var notificationsOn: Bool {
         get { defaults.object(forKey: "notifications") as? Bool ?? true }
@@ -320,6 +342,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return (id: id, role: a["role"] as? String ?? id, company: a["company"] as? String ?? "")
         }
         actionsOpen = (object["actionsOpen"] as? NSNumber)?.intValue
+        fleetOn = (object["fleet"] as? Bool) ?? false
         if let latest = object["appLatest"] as? String { noteLatest(latest) }
         noticeChanges()
         refreshStatusItem()
@@ -520,6 +543,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         menu.addItem(item("Quick Add to Action List…", #selector(showQuickAdd), key: "a", mods: [.option, .shift]))
         menu.addItem(item("Say Claude's Status", #selector(speakStatus)))
         menu.addItem(.separator())
+        menu.addItem(item("Fleet", #selector(toggleFleet), state: fleetOn))
         menu.addItem(item("Wallpaper Mode", #selector(toggleWallpaper), key: "w", mods: [.option, .shift], state: wallpaper))
 
         let displays = NSMenu()
@@ -635,6 +659,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     @objc func checkNow() { checkForUpdate(quiet: false) }
     @objc func toggleNotifications() { notificationsOn.toggle() }
     @objc func toggleBar() { hideBarInWindow.toggle(); syncBar() }
+    /// The page's Fleet toggle, driven from the menu. The page reports the new state back over the bridge.
+    @objc func toggleFleet() {
+        guard let frame = mindFrame else { return }
+        web.callAsyncJavaScript("return window.__mindFleet ? window.__mindFleet() : false;", arguments: [:], in: frame, in: .page) { [weak self] r in
+            if case .success(let v) = r, let on = v as? Bool { self?.fleetOn = on }
+        }
+    }
 
     @objc func pickDisplay(_ sender: NSMenuItem) {
         wallpaperDisplay = sender.representedObject as? String ?? "main"

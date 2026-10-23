@@ -12,7 +12,8 @@ What the app adds to the page:
 - **Ambient Mode**: after 2–30 idle minutes the Mind fades in full screen; any movement fades it out.
 - **Siri & Shortcuts** through `foresitemind://` links: `say`, `show`, `hide`, `toggle`, `add`, `add?text=…`, `wallpaper/on|off|toggle`, `ambient`, `reload`.
 - **Self-update**: checks this repo's latest release on launch and every six hours; "Update to x.y…" downloads it, swaps the app in Applications and relaunches, with no Gatekeeper prompt because the app did the download.
-- claude.ai's own bar across the top of the page is hidden in wallpaper and ambient modes (optional in the window).
+- claude.ai's own bar across the top of the page is hidden in wallpaper and ambient modes (optional in the window): first by hiding it in the page, and if it still shows, by clipping it above the window's edge.
+- **Fleet** in the menu switches the Mind's patrol fleet on or off.
 
 ## Install
 1. Download `Foresite-Mind.zip` from the latest release, unzip, drag **Foresite Mind** into Applications.
