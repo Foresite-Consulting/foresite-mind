@@ -53,16 +53,26 @@ final class Updater {
                 guard let newApp = try fm.contentsOfDirectory(at: work, includingPropertiesForKeys: nil)
                         .first(where: { $0.pathExtension == "app" }) else { throw Failure("The download had no app inside it.") }
                 try run("/usr/bin/codesign", ["--verify", "--deep", newApp.path])
-                let current = Bundle.main.bundleURL
-                let parent = current.deletingLastPathComponent()
+                // Where to install. An app opened from Downloads (or still carrying its quarantine flag) runs from a
+                // read-only "translocated" copy, so it cannot replace itself where it is: install into Applications instead.
+                var current = Bundle.main.bundleURL
+                var parent = current.deletingLastPathComponent()
+                if current.path.contains("/AppTranslocation/") || !fm.isWritableFile(atPath: parent.path) {
+                    let apps = fm.isWritableFile(atPath: "/Applications") ? URL(fileURLWithPath: "/Applications")
+                        : fm.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
+                    try? fm.createDirectory(at: apps, withIntermediateDirectories: true)
+                    parent = apps
+                    current = apps.appendingPathComponent("Foresite Mind.app")
+                }
                 let staged = parent.appendingPathComponent(".Foresite Mind.new.app")
                 let retired = parent.appendingPathComponent(".Foresite Mind.old.app")
                 try? fm.removeItem(at: staged); try? fm.removeItem(at: retired)
                 DispatchQueue.main.async { status("Installing…") }
                 try fm.copyItem(at: newApp, to: staged)        // copy into Applications first, so the swap itself is two renames
-                try fm.moveItem(at: current, to: retired)
+                try? run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", staged.path]) // so the new copy never gets translocated
+                if fm.fileExists(atPath: current.path) { try fm.moveItem(at: current, to: retired) }
                 do { try fm.moveItem(at: staged, to: current) } catch {
-                    try? fm.moveItem(at: retired, to: current)  // put the old one back
+                    if fm.fileExists(atPath: retired.path) { try? fm.moveItem(at: retired, to: current) }  // put the old one back
                     throw error
                 }
                 try? fm.removeItem(at: retired)

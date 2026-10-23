@@ -452,7 +452,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             self?.refreshStatusItem()
             let f = NSAlert()
             f.messageText = "The update didn't install"
-            f.informativeText = message + "\n\nNothing was changed. You can download it by hand from the release page."
+            f.informativeText = message + "\n\nNothing was changed. You can download it by hand from the release page, and drag it into Applications."
             f.addButton(withTitle: "Open Release Page"); f.addButton(withTitle: "OK")
             if f.runModal() == .alertFirstButtonReturn { openExternally(rel.page) }
         })
