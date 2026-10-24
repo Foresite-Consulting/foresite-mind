@@ -1,0 +1,76 @@
+# XcodeGen spec for the iPhone / iPad app and its widget. The workflow runs `xcodegen generate` here; the .xcodeproj is not committed.
+name: ForesiteMind
+options:
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+targets:
+  ForesiteMind:
+    type: application
+    platform: iOS
+    sources: [ForesiteMind, Shared]
+    dependencies:
+      - target: MindWidget
+    scheme: {}
+    entitlements:
+      path: ForesiteMind/ForesiteMind.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.wardmark.foresite-mind]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wardmark.foresite-mind.ios
+        PRODUCT_NAME: ForesiteMind
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: ForesiteMind/Info.plist
+      properties:
+        CFBundleDisplayName: Mind
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.wardmark.foresite-mind.ios
+            CFBundleURLSchemes: [foresitemind]
+        UILaunchScreen:
+          UIColorName: Ink
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIViewControllerBasedStatusBarAppearance: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+  MindWidget:
+    type: app-extension
+    platform: iOS
+    sources: [MindWidget, Shared]
+    entitlements:
+      path: MindWidget/MindWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.wardmark.foresite-mind]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wardmark.foresite-mind.ios.widget
+        PRODUCT_NAME: MindWidget
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+    info:
+      path: MindWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Mind
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
