@@ -23,3 +23,8 @@ What the app adds to the page:
 
 ## Build
 `bash build.sh` on any Mac with the Xcode command line tools; output in `dist/`. Pushes to `main` build on GitHub and publish a release tagged `v<version>.<build>` from `Info.plist`; bump `CFBundleVersion` for every release.
+
+## iPhone and iPad (TestFlight)
+`ios/` holds a small native app around the same live page: home-screen icon, kept sign-in, full screen without claude.ai's bar, pull to refresh, and a fresh reload when you return after ten minutes. Links outside claude.ai and sign-in open in Safari.
+
+Changes under `ios/` are compile-checked by the `ios` workflow; on `main` it signs the build and uploads it to TestFlight once these repo secrets exist: `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (an App Store Connect API key with the Admin role, so the runner can create signing certificates and profiles). The app record must exist in App Store Connect first, with bundle ID `com.wardmark.foresite-mind.ios`. Run the workflow by hand (Actions › ios › Run workflow) to push a new build without a code change.

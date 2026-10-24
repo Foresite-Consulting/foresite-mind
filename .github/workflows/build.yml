@@ -5,6 +5,7 @@ name: build
 on:
   push:
     branches: [main]
+    paths-ignore: ['ios/**', '.github/workflows/ios.yml'] # the iPhone app has its own workflow
   workflow_dispatch:
 
 permissions:
